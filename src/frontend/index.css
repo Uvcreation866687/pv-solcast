@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+
+    /* Solar Energy Palette - Deep Navy + Solar Gold + Electric Teal */
+    --background: 0.12 0.015 250;
+    --foreground: 0.96 0.01 220;
+
+    --card: 0.16 0.018 250;
+    --card-foreground: 0.96 0.01 220;
+
+    --popover: 0.18 0.02 250;
+    --popover-foreground: 0.96 0.01 220;
+
+    /* Solar Gold primary */
+    --primary: 0.82 0.18 75;
+    --primary-foreground: 0.12 0.015 250;
+
+    --secondary: 0.22 0.025 240;
+    --secondary-foreground: 0.88 0.01 220;
+
+    --muted: 0.2 0.02 245;
+    --muted-foreground: 0.6 0.015 230;
+
+    /* Electric Teal accent */
+    --accent: 0.72 0.15 195;
+    --accent-foreground: 0.12 0.015 250;
+
+    --destructive: 0.65 0.22 25;
+    --destructive-foreground: 0.98 0 0;
+
+    --border: 0.28 0.025 240;
+    --input: 0.22 0.025 240;
+    --ring: 0.82 0.18 75;
+
+    /* Chart colors - solar themed */
+    --chart-1: 0.82 0.18 75;
+    --chart-2: 0.72 0.15 195;
+    --chart-3: 0.68 0.17 145;
+    --chart-4: 0.75 0.16 55;
+    --chart-5: 0.65 0.22 25;
+
+    --sidebar: 0.14 0.018 248;
+    --sidebar-foreground: 0.96 0.01 220;
+    --sidebar-primary: 0.82 0.18 75;
+    --sidebar-primary-foreground: 0.12 0.015 250;
+    --sidebar-accent: 0.2 0.022 245;
+    --sidebar-accent-foreground: 0.88 0.01 220;
+    --sidebar-border: 0.26 0.025 240;
+    --sidebar-ring: 0.82 0.18 75;
+
+    /* Custom solar tokens */
+    --solar-gold: 0.82 0.18 75;
+    --solar-amber: 0.75 0.16 55;
+    --solar-teal: 0.72 0.15 195;
+    --solar-green: 0.68 0.17 145;
+    --solar-navy-deep: 0.1 0.018 255;
+    --solar-navy-mid: 0.16 0.02 250;
+    --solar-navy-light: 0.22 0.025 245;
+    --glow-gold: 0 0 20px oklch(0.82 0.18 75 / 0.4);
+    --glow-teal: 0 0 20px oklch(0.72 0.15 195 / 0.4);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: oklch(var(--muted));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(var(--border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(var(--solar-gold));
+  }
+}
+
+@layer components {
+  .solar-glow {
+    box-shadow: var(--glow-gold);
+  }
+  .teal-glow {
+    box-shadow: var(--glow-teal);
+  }
+  .gradient-solar {
+    background: linear-gradient(135deg, oklch(0.82 0.18 75) 0%, oklch(0.75 0.16 55) 100%);
+  }
+  .gradient-navy {
+    background: linear-gradient(180deg, oklch(0.12 0.015 250) 0%, oklch(0.1 0.018 255) 100%);
+  }
+  .card-solar {
+    background: oklch(var(--card));
+    border: 1px solid oklch(var(--border));
+    border-radius: var(--radius);
+  }
+  .nav-tab-active {
+    background: oklch(var(--solar-gold) / 0.15);
+    color: oklch(var(--solar-gold));
+    border-bottom: 2px solid oklch(var(--solar-gold));
+  }
+  .metric-value {
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    font-weight: 700;
+    color: oklch(var(--solar-gold));
+    line-height: 1;
+  }
+  .stat-card {
+    @apply card-solar p-4 flex flex-col gap-1;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .stat-card:hover {
+    box-shadow: var(--glow-gold);
+    transform: translateY(-1px);
+  }
+  .section-title {
+    @apply text-sm font-semibold uppercase tracking-widest;
+    color: oklch(var(--muted-foreground));
+  }
+  .input-solar {
+    @apply bg-secondary border-border text-foreground;
+  }
+}
