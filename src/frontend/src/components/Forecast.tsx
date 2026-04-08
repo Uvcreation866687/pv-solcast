@@ -34,12 +34,15 @@ interface ForecastProps {
 }
 
 const CHART_STYLE = {
-  background: "oklch(0.16 0.018 250)",
-  border: "1px solid oklch(0.28 0.025 240)",
+  background: "#1a2035",
+  border: "1px solid #3a4a6a",
   borderRadius: "8px",
-  color: "oklch(0.96 0.01 220)",
+  color: "#f0f4ff",
   fontSize: "12px",
 };
+
+const TOOLTIP_LABEL_STYLE = { color: "#a0b4d0", fontWeight: 600 };
+const TOOLTIP_ITEM_STYLE = { color: "#f0f4ff" };
 
 function formatTemp(c: number, isMetric: boolean) {
   return isMetric ? `${c.toFixed(1)}°C` : `${((c * 9) / 5 + 32).toFixed(1)}°F`;
@@ -159,6 +162,8 @@ export function Forecast({
                   />
                   <Tooltip
                     contentStyle={CHART_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    itemStyle={TOOLTIP_ITEM_STYLE}
                     formatter={(v: number) => [`${v} kW`, "Power"]}
                   />
                   <Area
@@ -277,6 +282,8 @@ export function Forecast({
                   />
                   <Tooltip
                     contentStyle={CHART_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    itemStyle={TOOLTIP_ITEM_STYLE}
                     formatter={(v: number, n) => [`${v}`, n]}
                   />
                   <Legend
@@ -387,7 +394,11 @@ export function Forecast({
                     tickLine={false}
                     axisLine={false}
                   />
-                  <Tooltip contentStyle={CHART_STYLE} />
+                  <Tooltip
+                    contentStyle={CHART_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    itemStyle={TOOLTIP_ITEM_STYLE}
+                  />
                   <Legend
                     wrapperStyle={{
                       color: "oklch(0.6 0.015 230)",
@@ -544,7 +555,11 @@ export function Forecast({
                     tickLine={false}
                     axisLine={false}
                   />
-                  <Tooltip contentStyle={CHART_STYLE} />
+                  <Tooltip
+                    contentStyle={CHART_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    itemStyle={TOOLTIP_ITEM_STYLE}
+                  />
                   <Legend
                     wrapperStyle={{
                       color: "oklch(0.6 0.015 230)",

@@ -12,13 +12,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Calculator,
   CloudSun,
   Droplets,
   Eye,
   Gauge,
   Leaf,
   Loader2,
+  LocateFixed,
   MapPin,
+  RefreshCw,
   Search,
   Sun,
   Sunrise,
@@ -133,6 +136,63 @@ const INDIA_CITIES = [
   { name: "Kurnool", lat: 15.8281, lon: 78.0373 },
   { name: "Tirunelveli", lat: 8.7139, lon: 77.7567 },
   { name: "Mangalore", lat: 12.9141, lon: 74.856 },
+  // Maharashtra cities
+  { name: "Amravati", lat: 20.9374, lon: 77.7796 },
+  { name: "Solapur", lat: 17.6805, lon: 75.9064 },
+  { name: "Kolhapur", lat: 16.705, lon: 74.2433 },
+  { name: "Akola", lat: 20.7002, lon: 77.0082 },
+  { name: "Latur", lat: 18.4088, lon: 76.5604 },
+  { name: "Nanded", lat: 19.1383, lon: 77.321 },
+  { name: "Jalgaon", lat: 21.0077, lon: 75.5626 },
+  { name: "Dhule", lat: 20.9042, lon: 74.7749 },
+  { name: "Ahmadnagar", lat: 19.0952, lon: 74.748 },
+  { name: "Chandrapur", lat: 19.9615, lon: 79.2961 },
+  // Other important cities
+  { name: "Gorakhpur", lat: 26.7606, lon: 83.3732 },
+  { name: "Aligarh", lat: 27.8974, lon: 78.088 },
+  { name: "Ajmer", lat: 26.4499, lon: 74.6399 },
+  { name: "Udaipur", lat: 24.5854, lon: 73.7125 },
+  { name: "Sikar", lat: 27.6094, lon: 75.1399 },
+  { name: "Tiruchirappalli", lat: 10.7905, lon: 78.7047 },
+  { name: "Salem", lat: 11.6643, lon: 78.146 },
+  { name: "Warangal", lat: 17.9784, lon: 79.5941 },
+  { name: "Rajahmundry", lat: 17.0005, lon: 81.804 },
+  { name: "Guntur", lat: 16.3067, lon: 80.4365 },
+  { name: "Nellore", lat: 14.4426, lon: 79.9865 },
+  { name: "Cuttack", lat: 20.4625, lon: 85.8828 },
+  { name: "Puri", lat: 19.8135, lon: 85.8312 },
+  { name: "Sambalpur", lat: 21.4669, lon: 83.9756 },
+  { name: "Gaya", lat: 24.7914, lon: 85.0002 },
+  { name: "Muzaffarpur", lat: 26.1209, lon: 85.3647 },
+  { name: "Bhagalpur", lat: 25.244, lon: 86.9718 },
+  { name: "Durgapur", lat: 23.5204, lon: 87.3119 },
+  { name: "Siliguri", lat: 26.7271, lon: 88.3953 },
+  { name: "Asansol", lat: 23.6739, lon: 86.9524 },
+  { name: "Jamshedpur", lat: 22.8046, lon: 86.2029 },
+  { name: "Bokaro", lat: 23.6693, lon: 86.1511 },
+  { name: "Kozhikode", lat: 11.2588, lon: 75.7804 },
+  { name: "Thrissur", lat: 10.5276, lon: 76.2144 },
+  { name: "Kannur", lat: 11.8745, lon: 75.3704 },
+  { name: "Shillong", lat: 25.5788, lon: 91.8933 },
+  { name: "Dimapur", lat: 25.9066, lon: 93.7265 },
+  { name: "Silchar", lat: 24.8333, lon: 92.7789 },
+  { name: "Bilaspur", lat: 22.0797, lon: 82.1409 },
+  { name: "Korba", lat: 22.3595, lon: 82.7501 },
+  { name: "Ujjain", lat: 23.1765, lon: 75.7885 },
+  { name: "Sagar", lat: 23.8388, lon: 78.7378 },
+  { name: "Satna", lat: 24.5868, lon: 80.8322 },
+  { name: "Rohtak", lat: 28.8955, lon: 76.6066 },
+  { name: "Hisar", lat: 29.1492, lon: 75.7217 },
+  { name: "Karnal", lat: 29.6857, lon: 76.9905 },
+  { name: "Panipat", lat: 29.3909, lon: 76.9635 },
+  { name: "Ambala", lat: 30.3752, lon: 76.7821 },
+  { name: "Jammu", lat: 32.7266, lon: 74.857 },
+  { name: "Puducherry", lat: 11.9416, lon: 79.8083 },
+  { name: "Gandhinagar", lat: 23.2156, lon: 72.6369 },
+  { name: "Bhavnagar", lat: 21.7645, lon: 72.1519 },
+  { name: "Jamnagar", lat: 22.4707, lon: 70.0577 },
+  { name: "Junagadh", lat: 21.5222, lon: 70.4579 },
+  { name: "Anand", lat: 22.5645, lon: 72.9289 },
 ] as const;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -156,6 +216,10 @@ interface LocationResult {
   annualOptTilt: number;
   sunrise: string;
   sunset: string;
+  capacityKwp: number;
+  tariffPerKwh: number;
+  panelW: number;
+  numPanels: number;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -176,10 +240,10 @@ const MONTH_NAMES_SHORT = [
 ];
 
 const CHART_STYLE = {
-  background: "oklch(0.16 0.018 250)",
-  border: "1px solid oklch(0.28 0.025 240)",
+  background: "#1a2035",
+  border: "1px solid #3a4a6a",
   borderRadius: "8px",
-  color: "oklch(0.96 0.01 220)",
+  color: "#f0f4ff",
   fontSize: "12px",
 };
 
@@ -371,8 +435,12 @@ function computeLocationData(
   lat: number,
   lon: number,
   locationName: string,
+  capacityKwp = 1000,
+  tariffPerKwh = 7,
+  panelW = 400,
 ): LocationResult {
   const optTilt = Math.max(10, annualOptimalTilt(lat));
+  const numPanels = Math.round((capacityKwp * 1000) / panelW);
 
   const refConfig: SystemConfig = {
     systemName: `${locationName} Solar Plant`,
@@ -380,8 +448,8 @@ function computeLocationData(
     arrays: [
       {
         name: "Array 1",
-        panelCount: 2500,
-        panelWattage: 400,
+        panelCount: numPanels,
+        panelWattage: panelW,
         tiltAngle: optTilt,
         azimuthAngle: 180,
         enabled: true,
@@ -392,7 +460,7 @@ function computeLocationData(
       soilingFactor: 0.95,
       temperatureCoefficient: -0.004,
     },
-    electricityPrice: 7,
+    electricityPrice: tariffPerKwh,
     co2EmissionFactor: 0.71,
     unitPreference: "metric",
   };
@@ -400,7 +468,6 @@ function computeLocationData(
   const monthly = generateMonthlyForecast(refConfig);
   const annual = generateAnnualForecast(refConfig, monthly);
 
-  const capacityKwp = 1000;
   const capacityFactor = (annual.totalEnergyKwh / (capacityKwp * 8760)) * 100;
   const bestMonthObj = monthly.reduce((a, b) =>
     b.energyKwh > a.energyKwh ? b : a,
@@ -434,6 +501,10 @@ function computeLocationData(
     annualOptTilt: optTilt,
     sunrise,
     sunset,
+    capacityKwp,
+    tariffPerKwh,
+    panelW,
+    numPanels,
   };
 }
 
@@ -517,7 +588,9 @@ function CustomTooltip({
   if (!active || !payload || payload.length === 0) return null;
   return (
     <div style={CHART_STYLE} className="px-3 py-2 shadow-lg">
-      <p className="text-xs font-semibold mb-1 text-foreground">{label}</p>
+      <p className="text-xs font-semibold mb-1" style={{ color: "#a0b4d0" }}>
+        {label}
+      </p>
       {payload.map((p) => (
         <p key={p.name} className="text-xs" style={{ color: p.color }}>
           {p.name}: <span className="font-bold">{p.value}</span>
@@ -538,9 +611,15 @@ export function LocationAnalytics() {
   const [selectedLon, setSelectedLon] = useState<number | null>(null);
   const [locationName, setLocationName] = useState("");
   const [isComputing, setIsComputing] = useState(false);
+  const [isGpsLoading, setIsGpsLoading] = useState(false);
   const [result, setResult] = useState<LocationResult | null>(null);
   const [inputMode, setInputMode] = useState<"search" | "manual">("search");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // MWp Calculator state
+  const [calcMwp, setCalcMwp] = useState("1000");
+  const [calcTariff, setCalcTariff] = useState("7.0");
+  const [calcPanelW, setCalcPanelW] = useState("400");
 
   // Filter cities by search query
   const suggestions =
@@ -583,7 +662,14 @@ export function LocationAnalytics() {
     setIsComputing(true);
     setTimeout(() => {
       try {
-        const data = computeLocationData(lat, lon, name);
+        const data = computeLocationData(
+          lat,
+          lon,
+          name,
+          Number.parseFloat(calcMwp),
+          Number.parseFloat(calcTariff),
+          Number.parseFloat(calcPanelW),
+        );
         setResult(data);
       } catch (e) {
         console.error("Location analytics error:", e);
@@ -593,12 +679,62 @@ export function LocationAnalytics() {
     }, 60);
   }
 
+  function handleRecalculate() {
+    if (!result || selectedLat === null || selectedLon === null) return;
+    const name =
+      locationName ||
+      `Custom (${selectedLat.toFixed(4)}°N, ${selectedLon.toFixed(4)}°E)`;
+    setIsComputing(true);
+    setTimeout(() => {
+      try {
+        const data = computeLocationData(
+          selectedLat,
+          selectedLon,
+          name,
+          Number.parseFloat(calcMwp),
+          Number.parseFloat(calcTariff),
+          Number.parseFloat(calcPanelW),
+        );
+        setResult(data);
+      } catch (e) {
+        console.error("Recalculate error:", e);
+      } finally {
+        setIsComputing(false);
+      }
+    }, 40);
+  }
+
+  function handleGpsLocate() {
+    if (!navigator.geolocation) {
+      return;
+    }
+    setIsGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const clampedLat = Math.max(6, Math.min(38, lat));
+        const clampedLon = Math.max(68, Math.min(98, lon));
+        setManualLat(clampedLat.toFixed(4));
+        setManualLon(clampedLon.toFixed(4));
+        setInputMode("manual");
+        setIsGpsLoading(false);
+      },
+      (_error) => {
+        setIsGpsLoading(false);
+      },
+      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true },
+    );
+  }
+
   // Monthly chart data
   const monthlyChartData = result
     ? result.monthly.map((m) => ({
         month: m.monthName,
         production: Math.round(m.energyKwh / 1000), // MWh
-        earnings: Math.round((m.energyKwh * 7) / 100000), // ₹ Lakhs
+        earnings: Math.round(
+          (m.energyKwh * (result?.tariffPerKwh ?? 7)) / 100000,
+        ), // ₹ Lakhs
         co2: Math.round(m.co2AvoidedKg / 1000), // tonnes
       }))
     : [];
@@ -674,6 +810,19 @@ export function LocationAnalytics() {
                 }`}
               >
                 📍 Manual Coordinates
+              </button>
+              <button
+                type="button"
+                onClick={handleGpsLocate}
+                disabled={isGpsLoading}
+                className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors text-muted-foreground hover:text-foreground border border-transparent flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isGpsLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <LocateFixed className="w-3.5 h-3.5 text-solar-green" />
+                )}
+                Use My GPS
               </button>
             </div>
 
@@ -853,7 +1002,7 @@ export function LocationAnalytics() {
               </h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
                 Enter any location in India to see complete weather analytics of
-                that place, plus full solar plant projections for a 1 MWp
+                that place, plus full solar plant projections for a 1,000 KWp
                 reference plant.
               </p>
             </div>
@@ -887,6 +1036,160 @@ export function LocationAnalytics() {
       {/* ── Results ─────────────────────────────────────────────────── */}
       {!isComputing && result && (
         <>
+          {/* ═══ KWp Calculator Card ════════════════════════════════════ */}
+          <motion.div
+            data-ocid="locanalytics.calculator.card"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.02 }}
+          >
+            <Card className="border-solar-gold/30 bg-card">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Calculator className="w-4 h-4 text-solar-gold" />
+                      KWp Calculator &amp; Reference Values
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Adjust system size, tariff, and panel specs to get custom
+                      production estimates
+                    </p>
+                  </div>
+                  <Button
+                    data-ocid="locanalytics.calculator.submit_button"
+                    onClick={handleRecalculate}
+                    disabled={isComputing || !result}
+                    size="sm"
+                    className="bg-solar-gold text-solar-navy font-semibold hover:bg-solar-amber transition-colors shrink-0"
+                  >
+                    {isComputing ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                    )}
+                    Recalculate
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Input grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label
+                      htmlFor="calc-mwp"
+                      className="text-xs text-muted-foreground mb-1.5 block"
+                    >
+                      System Capacity (KWp)
+                    </Label>
+                    <Input
+                      id="calc-mwp"
+                      data-ocid="locanalytics.calculator.input"
+                      type="number"
+                      step="1"
+                      min="1"
+                      max="1000000"
+                      value={calcMwp}
+                      onChange={(e) => setCalcMwp(e.target.value)}
+                      placeholder="e.g. 1000"
+                      className="bg-input border-solar-gold/20 text-foreground focus-visible:ring-solar-gold/40"
+                    />
+                  </div>
+                  <div>
+                    <Label
+                      htmlFor="calc-tariff"
+                      className="text-xs text-muted-foreground mb-1.5 block"
+                    >
+                      Tariff (₹/kWh)
+                    </Label>
+                    <Input
+                      id="calc-tariff"
+                      data-ocid="locanalytics.calculator.input"
+                      type="number"
+                      step="0.1"
+                      min="0.5"
+                      max="20"
+                      value={calcTariff}
+                      onChange={(e) => setCalcTariff(e.target.value)}
+                      placeholder="e.g. 7.0"
+                      className="bg-input border-solar-gold/20 text-foreground focus-visible:ring-solar-gold/40"
+                    />
+                  </div>
+                  <div>
+                    <Label
+                      htmlFor="calc-panelw"
+                      className="text-xs text-muted-foreground mb-1.5 block"
+                    >
+                      Panel Wattage (W)
+                    </Label>
+                    <Input
+                      id="calc-panelw"
+                      data-ocid="locanalytics.calculator.input"
+                      type="number"
+                      step="5"
+                      min="100"
+                      max="800"
+                      value={calcPanelW}
+                      onChange={(e) => setCalcPanelW(e.target.value)}
+                      placeholder="e.g. 400"
+                      className="bg-input border-solar-gold/20 text-foreground focus-visible:ring-solar-gold/40"
+                    />
+                  </div>
+                </div>
+
+                {/* Derived info row */}
+                {(() => {
+                  const mwpVal = Number.parseFloat(calcMwp) || 0;
+                  const panelWVal = Number.parseFloat(calcPanelW) || 400;
+                  const panels =
+                    panelWVal > 0 ? Math.round((mwpVal * 1000) / panelWVal) : 0;
+                  const costCr = ((mwpVal / 1000) * 4.5).toFixed(2);
+                  const areaM2 = Math.round(panels * 2.0);
+                  return (
+                    <div className="flex flex-wrap gap-3 p-3 rounded-lg bg-solar-gold/5 border border-solar-gold/15">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span className="text-solar-gold font-semibold">
+                          ⚡ Panels required:
+                        </span>
+                        <span className="font-mono text-foreground font-medium">
+                          {panels.toLocaleString()}
+                        </span>
+                      </span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">
+                        ·
+                      </span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span className="text-solar-teal font-semibold">
+                          ₹ Est. system cost:
+                        </span>
+                        <span className="font-mono text-foreground font-medium">
+                          ₹{costCr} Cr
+                        </span>
+                      </span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">
+                        ·
+                      </span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <span className="text-solar-green font-semibold">
+                          📐 Panel area:
+                        </span>
+                        <span className="font-mono text-foreground font-medium">
+                          ~{areaM2.toLocaleString()} m²
+                        </span>
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                <p className="text-xs text-muted-foreground/70 italic flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3 shrink-0" />
+                  Results below update based on your input values after clicking
+                  Recalculate
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
           {/* ═══ SECTION A: Weather Analytics ═══════════════════════════ */}
           <motion.section
             data-ocid="locanalytics.weather.section"
@@ -1109,11 +1412,15 @@ export function LocationAnalytics() {
               <h2 className="text-xl font-bold font-display text-foreground flex items-center gap-2">
                 <Zap className="w-5 h-5 text-solar-gold" />
                 Solar Plant Analytics
-                <span className="text-solar-gold">— 1 MWp Reference Plant</span>
+                <span className="text-solar-gold">
+                  — {`${result.capacityKwp.toLocaleString()} KWp`} Plant
+                </span>
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Based on 2,500 panels × 400 W at optimal tilt (
-                {result.annualOptTilt.toFixed(1)}°) · ₹7/kWh tariff
+                Based on {result.numPanels.toLocaleString()} panels ×{" "}
+                {result.panelW} W at optimal tilt (
+                {result.annualOptTilt.toFixed(1)}°) · ₹{result.tariffPerKwh}/kWh
+                tariff
               </p>
             </div>
 
@@ -1130,8 +1437,8 @@ export function LocationAnalytics() {
               <KpiCard
                 icon={<Sun className="w-5 h-5" />}
                 label="System Capacity"
-                value="1,000 kWp"
-                sub="1 MWp (2,500 × 400 W)"
+                value={`${result.capacityKwp.toLocaleString()} KWp`}
+                sub={`${result.numPanels.toLocaleString()} × ${result.panelW} W`}
                 accent="amber"
                 delay={0.05}
               />
@@ -1318,7 +1625,11 @@ export function LocationAnalytics() {
                               {(m.energyKwh / 1000).toFixed(1)}
                             </TableCell>
                             <TableCell className="text-right font-mono text-sm py-2 text-solar-teal">
-                              ₹{((m.energyKwh * 7) / 100000).toFixed(2)}
+                              ₹
+                              {(
+                                (m.energyKwh * result.tariffPerKwh) /
+                                100000
+                              ).toFixed(2)}
                             </TableCell>
                             <TableCell className="text-right font-mono text-sm py-2 text-solar-green">
                               {(m.co2AvoidedKg / 1000).toFixed(2)}
@@ -1338,7 +1649,8 @@ export function LocationAnalytics() {
                         <TableCell className="text-right font-mono font-bold text-solar-teal py-2.5">
                           ₹
                           {(
-                            (result.annual.totalEnergyKwh * 7) /
+                            (result.annual.totalEnergyKwh *
+                              result.tariffPerKwh) /
                             100000
                           ).toFixed(2)}
                         </TableCell>

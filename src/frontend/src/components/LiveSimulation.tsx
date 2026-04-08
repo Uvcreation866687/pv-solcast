@@ -14,6 +14,7 @@ export function LiveSimulation({
   irradiance,
 }: LiveSimulationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const animFrameRef = useRef<number>(0);
 
   const drawScene = (
@@ -21,36 +22,38 @@ export function LiveSimulation({
     altitude: number,
     azimuth: number,
     irr: number,
+    elapsed: number,
   ) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const W = canvas.width;
-    const H = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    // Logical dimensions (CSS pixels) — canvas.width is physical, divide by DPR
+    const W = canvas.width / dpr;
+    const H = canvas.height / dpr;
+    // Ensure the transform is correct for this frame
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
     const sunRise = altitude > 0;
 
     // ─── Sky gradient background ───────────────────────────────────
     let skyGrad: CanvasGradient;
     if (!sunRise) {
-      // Night sky
       skyGrad = ctx.createLinearGradient(0, 0, 0, H);
       skyGrad.addColorStop(0, "#040a1a");
       skyGrad.addColorStop(1, "#0a1535");
     } else if (altitude < 10) {
-      // Dawn / dusk
       skyGrad = ctx.createLinearGradient(0, 0, 0, H);
       skyGrad.addColorStop(0, "#1a2a6c");
       skyGrad.addColorStop(0.4, "#b21f1f");
       skyGrad.addColorStop(0.7, "#f7941d");
       skyGrad.addColorStop(1, "#1a2f50");
     } else if (altitude < 30) {
-      // Morning
       skyGrad = ctx.createLinearGradient(0, 0, 0, H);
       skyGrad.addColorStop(0, "#1a3a6c");
       skyGrad.addColorStop(0.5, "#2e6fad");
       skyGrad.addColorStop(1, "#1a2f50");
     } else {
-      // Midday
       skyGrad = ctx.createLinearGradient(0, 0, 0, H);
       skyGrad.addColorStop(0, "#0a1f4a");
       skyGrad.addColorStop(0.5, "#1557a0");
@@ -67,40 +70,64 @@ export function LiveSimulation({
     ctx.fillStyle = groundGrad;
     ctx.fillRect(0, groundY, W, H - groundY);
 
-    // ─── Stars (night only) ──────────────────────────────────────────
+    // ─── Stars (night only) with twinkling ──────────────────────────
     if (!sunRise || altitude < 5) {
-      ctx.fillStyle = "rgba(255,255,255,0.7)";
       for (let s = 0; s < 60; s++) {
         const sx = (s * 137.5) % W;
         const sy = (s * 73.3) % (groundY * 0.8);
         const size = s % 3 === 0 ? 1.5 : 0.8;
+        // Each star twinkles at its own frequency
+        const twinkle =
+          0.3 + 0.7 * (0.5 + 0.5 * Math.sin(elapsed / 1000 + s * 0.7));
+        ctx.fillStyle = `rgba(255,255,255,${twinkle})`;
         ctx.beginPath();
         ctx.arc(sx, sy, size, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
-    // ─── Clouds ──────────────────────────────────────────────────────
-    ctx.fillStyle = "rgba(200,220,255,0.12)";
+    // ─── Clouds drifting left→right (wrap around ~60s cycle) ─────────
+    const cloudOffset = ((elapsed / 60000) * W) % W;
+    ctx.save();
     for (let c = 0; c < 3; c++) {
-      const cx = W * 0.2 + c * W * 0.3;
+      const baseCx = W * 0.2 + c * W * 0.3;
       const cy = H * 0.2 + c * H * 0.05;
+      const cx = ((baseCx + cloudOffset) % (W + 160)) - 80;
+      ctx.fillStyle = "rgba(200,220,255,0.12)";
       ctx.beginPath();
       ctx.ellipse(cx, cy, 60 + c * 20, 18, 0, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
 
     // ─── Sun position ────────────────────────────────────────────────
-    if (altitude > -5) {
-      // Map azimuth to X position (S=center, E=left, W=right)
-      const azNorm = ((azimuth - 90 + 360) % 360) / 360;
-      const sunX = W * (0.1 + azNorm * 0.8);
-      // Map altitude to Y position
-      const altNorm = Math.max(0, altitude) / 90;
-      const sunY = groundY - altNorm * groundY * 0.9;
-      const sunR = 22;
+    const azNorm = ((azimuth - 90 + 360) % 360) / 360;
+    const sunX = W * (0.1 + azNorm * 0.8);
+    const altNorm = Math.max(0, altitude) / 90;
+    const sunY = groundY - altNorm * groundY * 0.9;
+    const sunR = 22;
 
+    if (altitude > -5) {
       if (sunRise) {
+        // ── Sun shimmer: secondary halo ring that expands + fades ──
+        const shimmerT = (Math.sin(elapsed / 3000) + 1) / 2; // 0→1 cycle ~3s
+        const shimmerR = sunR * (3 + shimmerT * 2); // sunR*3 to sunR*5
+        const shimmerAlpha = 0.15 * (1 - shimmerT);
+        const shimmerGrad = ctx.createRadialGradient(
+          sunX,
+          sunY,
+          sunR * 2.5,
+          sunX,
+          sunY,
+          shimmerR,
+        );
+        shimmerGrad.addColorStop(0, `rgba(255,220,80,${shimmerAlpha})`);
+        shimmerGrad.addColorStop(1, "rgba(255,180,30,0)");
+        ctx.fillStyle = shimmerGrad;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, shimmerR, 0, Math.PI * 2);
+        ctx.fill();
+
         // Sun glow halo
         const glowGrad = ctx.createRadialGradient(
           sunX,
@@ -134,12 +161,15 @@ export function LiveSimulation({
         ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Sun rays
+        // ── Rotating sun rays with pulsing length ──────────────────
         const rayCount = 8;
         const irrFactor = Math.min(1, irr / 800);
+        const rayRotation = elapsed / 8000; // full rotation every ~50s
         for (let r = 0; r < rayCount; r++) {
-          const angle = (r / rayCount) * Math.PI * 2;
-          const rayLen = 30 + irrFactor * 20;
+          const angle = (r / rayCount) * Math.PI * 2 + rayRotation;
+          // Each ray pulses at slightly different phase
+          const pulse = Math.sin(elapsed / 700 + r * 0.9);
+          const rayLen = 30 + irrFactor * 20 + pulse * 8;
           const x1 = sunX + Math.cos(angle) * (sunR + 5);
           const y1 = sunY + Math.sin(angle) * (sunR + 5);
           const x2 = sunX + Math.cos(angle) * (sunR + rayLen);
@@ -185,6 +215,29 @@ export function LiveSimulation({
           ctx.lineTo(panelCenterX, panelCenterY);
           ctx.stroke();
           ctx.setLineDash([]);
+
+          // ── Energy flow dots travelling along each beam ────────────
+          const beamOffset = idx * 0.33; // stagger between arrays
+          for (let d = 0; d < 3; d++) {
+            const frac = (elapsed / 1200 + beamOffset + d * 0.33) % 1;
+            const dotX = sunX + (panelCenterX - sunX) * frac;
+            const dotY = sunY + (panelCenterY - sunY) * frac;
+            const dotGrad = ctx.createRadialGradient(
+              dotX,
+              dotY,
+              0,
+              dotX,
+              dotY,
+              4,
+            );
+            dotGrad.addColorStop(0, "rgba(255,230,80,0.95)");
+            dotGrad.addColorStop(0.5, "rgba(255,180,30,0.6)");
+            dotGrad.addColorStop(1, "rgba(255,140,0,0)");
+            ctx.fillStyle = dotGrad;
+            ctx.beginPath();
+            ctx.arc(dotX, dotY, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
         });
       }
     }
@@ -262,7 +315,7 @@ export function LiveSimulation({
       ctx.fillText(arr.name, baseX, baseY + 14);
     });
 
-    // ─── Power output indicator ───────────────────────────────────────
+    // ─── Power output indicator with pulsing amber glow ───────────────
     const powerKw = enabledArrays.reduce((s, arr) => {
       return (
         s +
@@ -270,13 +323,30 @@ export function LiveSimulation({
       );
     }, 0);
 
-    // Panel on right side
     const piX = W - 130;
     const piY = 20;
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
+
+    // Pulsing shadow glow on the panel
+    const glowPulse = (Math.sin(elapsed / 900) + 1) / 2; // 0→1
+    ctx.save();
+    ctx.shadowColor = sunRise
+      ? `rgba(255, 180, 30, ${0.3 + glowPulse * 0.5})`
+      : "rgba(100, 120, 255, 0.2)";
+    ctx.shadowBlur = 8 + glowPulse * 16;
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.beginPath();
     ctx.roundRect(piX, piY, 120, 70, 8);
     ctx.fill();
+    ctx.restore();
+
+    // Amber border ring
+    ctx.strokeStyle = sunRise
+      ? `rgba(255, 200, 50, ${0.3 + glowPulse * 0.45})`
+      : "rgba(80,100,200,0.3)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(piX, piY, 120, 70, 8);
+    ctx.stroke();
 
     ctx.fillStyle = "#ffd700";
     ctx.font = "bold 20px monospace";
@@ -299,35 +369,62 @@ export function LiveSimulation({
     ctx.fill();
   };
 
+  // ─── Responsive canvas: measure container + apply DPR ──────────────
   // biome-ignore lint/correctness/useExhaustiveDependencies: drawScene is defined inside component but not memoized
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const wrapper = wrapperRef.current;
+    if (!canvas || !wrapper) return;
 
-    let start: number;
+    let start: number | undefined;
     let elapsed = 0;
+    let rafId = 0;
 
-    const animate = (ts: number) => {
-      if (!start) start = ts;
-      elapsed = ts - start;
-
-      // Slightly animate the sun rays with time
-      const animAltitude = solarPosition.altitude;
-      const animAzimuth = solarPosition.azimuth;
-      drawScene(
-        canvas,
-        animAltitude,
-        animAzimuth,
-        irradiance * (0.95 + 0.05 * Math.sin(elapsed / 1500)),
-      );
-
-      animFrameRef.current = requestAnimationFrame(animate);
+    const applySize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = wrapper.getBoundingClientRect();
+      const logicalW = Math.max(rect.width || wrapper.offsetWidth, 1);
+      const logicalH = 280; // fixed logical height
+      // Setting width/height resets transform, so we must re-scale afterwards
+      canvas.width = Math.round(logicalW * dpr);
+      canvas.height = Math.round(logicalH * dpr);
+      canvas.style.width = `${logicalW}px`;
+      canvas.style.height = `${logicalH}px`;
+      // ctx.scale accumulates — reset by reassigning canvas dimensions, then scale once
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    animFrameRef.current = requestAnimationFrame(animate);
+    const ro = new ResizeObserver(() => {
+      applySize();
+    });
+    ro.observe(wrapper);
+
+    // Initial size
+    applySize();
+
+    const animate = (ts: number) => {
+      if (start === undefined) start = ts;
+      elapsed = ts - start;
+
+      const irrAnim = irradiance * (0.95 + 0.05 * Math.sin(elapsed / 1500));
+      drawScene(
+        canvas,
+        solarPosition.altitude,
+        solarPosition.azimuth,
+        irrAnim,
+        elapsed,
+      );
+
+      rafId = requestAnimationFrame(animate);
+    };
+
+    rafId = requestAnimationFrame(animate);
+    animFrameRef.current = rafId;
 
     return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
     };
   }, [solarPosition, irradiance, config]);
 
@@ -339,14 +436,22 @@ export function LiveSimulation({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-3">
-        <canvas
-          ref={canvasRef}
-          data-ocid="simulation.canvas_target"
-          width={800}
-          height={400}
-          className="w-full rounded-lg"
-          style={{ height: "400px", objectFit: "cover" }}
-        />
+        <div
+          ref={wrapperRef}
+          style={{
+            width: "100%",
+            height: "280px",
+            overflow: "hidden",
+            borderRadius: "0.5rem",
+          }}
+        >
+          <canvas
+            ref={canvasRef}
+            data-ocid="simulation.canvas_target"
+            className="rounded-lg"
+            style={{ display: "block" }}
+          />
+        </div>
         <div className="flex flex-wrap gap-4 mt-3 px-1">
           <span className="text-xs text-muted-foreground">
             Sun:{" "}

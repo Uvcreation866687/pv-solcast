@@ -2,16 +2,22 @@ import { Toaster } from "@/components/ui/sonner";
 import {
   BarChart3,
   CloudSun,
+  ExternalLink,
+  HelpCircle,
   LayoutDashboard,
+  Mail,
   MapPin,
+  Moon,
   Search,
   Settings,
   Sun,
   TrendingUp,
+  Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ThemeProvider, useTheme } from "./hooks/useTheme";
 
 import {
   generateAnnualForecast,
@@ -19,6 +25,7 @@ import {
   generateHourlyForecast,
   generateMonthlyForecast,
   getSolarPosition,
+  locationSoilingFactor,
 } from "./solarEngine";
 import type {
   AnnualForecast,
@@ -36,6 +43,7 @@ import { Dashboard } from "./components/Dashboard";
 import { Forecast } from "./components/Forecast";
 import { IndiaSolarPlants } from "./components/IndiaSolarPlants";
 import { LocationAnalytics } from "./components/LocationAnalytics";
+import { SupportTab } from "./components/SupportTab";
 import { SystemConfigTab } from "./components/SystemConfig";
 import { WeatherTab } from "./components/WeatherTab";
 import { useSaveSystemConfig, useSystemConfig } from "./hooks/useQueries";
@@ -43,23 +51,23 @@ import { useSaveSystemConfig, useSystemConfig } from "./hooks/useQueries";
 const DEFAULT_CONFIG: SystemConfig = {
   systemName: "My Solar System",
   location: {
-    latitude: 28.6139,
-    longitude: 77.209,
-    cityName: "New Delhi, India",
+    latitude: 19.076,
+    longitude: 72.8777,
+    cityName: "Mumbai, Maharashtra",
   },
   arrays: [
     {
       name: "Array 1",
       panelCount: 10,
       panelWattage: 400,
-      tiltAngle: 28,
+      tiltAngle: 19,
       azimuthAngle: 180,
       enabled: true,
     },
   ],
   calibration: {
     efficiencyMultiplier: 1.0,
-    soilingFactor: 0.95,
+    soilingFactor: 0.9,
     temperatureCoefficient: -0.004,
   },
   electricityPrice: 0.085, // ~₹7/kWh average India retail tariff
@@ -79,9 +87,11 @@ const NAV_TABS: {
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "solarplants", label: "Solar Plants", icon: MapPin },
   { id: "locanalytics", label: "Location Analytics", icon: Search },
+  { id: "support", label: "Support & FAQ", icon: HelpCircle },
 ];
 
-export default function App() {
+function AppInner() {
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<TabName>("dashboard");
   const [config, setConfig] = useState<SystemConfig>(DEFAULT_CONFIG);
   const [isComputingForecast, setIsComputingForecast] = useState(false);
@@ -165,9 +175,30 @@ export default function App() {
 
   const isMetric = config.unitPreference === "metric";
 
-  const handleConfigChange = useCallback((newConfig: SystemConfig) => {
-    setConfig(newConfig);
-  }, []);
+  const handleConfigChange = useCallback(
+    (incomingConfig: SystemConfig) => {
+      // Auto-update soiling factor whenever location changes
+      let newConfig = incomingConfig;
+      if (
+        newConfig.location.latitude !== config.location.latitude ||
+        newConfig.location.longitude !== config.location.longitude
+      ) {
+        const autoSoiling = locationSoilingFactor(
+          newConfig.location.latitude,
+          newConfig.location.longitude,
+        );
+        newConfig = {
+          ...newConfig,
+          calibration: {
+            ...newConfig.calibration,
+            soilingFactor: autoSoiling,
+          },
+        };
+      }
+      setConfig(newConfig);
+    },
+    [config.location.latitude, config.location.longitude],
+  );
 
   // handleSaveConfig is used in SystemConfigTab via onSave prop in future; kept for backend integration
   const _handleSaveConfig = useCallback(() => {
@@ -212,6 +243,19 @@ export default function App() {
                   Computing...
                 </span>
               )}
+              <button
+                type="button"
+                data-ocid="header.theme.toggle"
+                onClick={toggleTheme}
+                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? (
+                  <Sun className="w-4 h-4" />
+                ) : (
+                  <Moon className="w-4 h-4" />
+                )}
+              </button>
             </div>
           </div>
 
@@ -298,6 +342,10 @@ export default function App() {
                   setConfig((prev) => ({
                     ...prev,
                     location: { latitude: lat, longitude: lon, cityName },
+                    calibration: {
+                      ...prev.calibration,
+                      soilingFactor: locationSoilingFactor(lat, lon),
+                    },
                   }))
                 }
                 currentLat={config.location.latitude}
@@ -305,6 +353,7 @@ export default function App() {
               />
             )}
             {activeTab === "locanalytics" && <LocationAnalytics />}
+            {activeTab === "support" && <SupportTab />}
             {isComputingForecast && activeTab !== "config" && (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center space-y-3">
@@ -320,48 +369,190 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card/60 mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">
-              PV SolCast — Solar Intelligence Platform
-            </span>
-            <a
-              href="https://sites.google.com/view/pvfterms/home"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-solar-teal hover:text-solar-gold transition-colors underline-offset-2 hover:underline"
-            >
-              Terms & Conditions
-            </a>
-            <div className="flex items-center gap-3">
-              <a
-                href="mailto:support@pvsolcast.com"
-                className="text-solar-gold hover:underline"
-              >
-                support@pvsolcast.com
-              </a>
-              <span>|</span>
-              <a
-                href="https://www.pvsolcast.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-solar-gold hover:underline"
-              >
-                www.pvsolcast.com
-              </a>
+      <footer
+        className="mt-12 border-t border-border"
+        style={{ background: "oklch(var(--footer-bg))" }}
+      >
+        {/* Top accent line */}
+        <div
+          className="h-0.5 w-full"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent, oklch(0.82 0.18 75 / 0.6), oklch(0.72 0.15 195 / 0.6), transparent)",
+          }}
+        />
+
+        {/* Main footer grid */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+            {/* Column 1 — Brand */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-glow bg-primary/10 border border-primary/30">
+                  <Sun className="w-4 h-4 text-solar-gold" />
+                </div>
+                <span className="font-display font-bold text-lg text-foreground tracking-tight">
+                  PV SolCast
+                </span>
+              </div>
+              <p className="text-xs font-medium text-solar-gold tracking-wider uppercase">
+                🇮🇳 India's Solar Intelligence Platform
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Advanced solar forecasting &amp; analytics for Indian solar
+                plants. Powered by real solar geometry calculations.
+              </p>
+              <div className="flex items-center gap-3 pt-1">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer bg-secondary border border-border">
+                  <Zap className="w-3.5 h-3.5 text-solar-teal" />
+                </div>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer bg-secondary border border-border">
+                  <Sun className="w-3.5 h-3.5 text-solar-gold" />
+                </div>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer bg-secondary border border-border">
+                  <MapPin className="w-3.5 h-3.5 text-solar-green" />
+                </div>
+              </div>
+            </div>
+
+            {/* Column 2 — Quick Links */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-semibold tracking-widest uppercase text-solar-gold flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-solar-gold inline-block" />
+                Quick Links
+              </h3>
+              <ul className="space-y-2.5">
+                {[
+                  { label: "Dashboard", tab: "dashboard" as const },
+                  { label: "Forecast", tab: "forecast" as const },
+                  { label: "Weather", tab: "weather" as const },
+                  { label: "Solar Plants", tab: "solarplants" as const },
+                  { label: "Location Analytics", tab: "locanalytics" as const },
+                  { label: "System Config", tab: "config" as const },
+                ].map(({ label, tab }) => (
+                  <li key={tab}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      data-ocid={`footer.${tab}.link`}
+                      className="text-sm text-muted-foreground hover:text-solar-gold transition-colors flex items-center gap-1.5 group"
+                    >
+                      <span className="w-1 h-1 rounded-full bg-solar-teal opacity-0 group-hover:opacity-100 transition-opacity" />
+                      {label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Column 3 — Resources */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-semibold tracking-widest uppercase text-solar-teal flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-solar-teal inline-block" />
+                Resources
+              </h3>
+              <ul className="space-y-2.5">
+                <li>
+                  <a
+                    href="https://sites.google.com/view/pvfterms/home"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-ocid="footer.terms.link"
+                    className="text-sm text-muted-foreground hover:text-solar-gold transition-colors flex items-center gap-1.5 group"
+                  >
+                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-solar-gold" />
+                    Terms &amp; Conditions
+                  </a>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("support")}
+                    data-ocid="footer.support.link"
+                    className="text-sm text-muted-foreground hover:text-solar-teal transition-colors flex items-center gap-1.5 group"
+                  >
+                    <span className="w-1 h-1 rounded-full bg-solar-teal opacity-0 group-hover:opacity-100 transition-opacity" />
+                    Support &amp; FAQ
+                  </button>
+                </li>
+                <li>
+                  <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
+                    About PV SolCast
+                  </span>
+                </li>
+                <li>
+                  <a
+                    href="mailto:support@pvsolcast.com"
+                    data-ocid="footer.contact.link"
+                    className="text-sm text-muted-foreground hover:text-solar-gold transition-colors flex items-center gap-1.5 group"
+                  >
+                    <span className="w-1 h-1 rounded-full bg-solar-gold opacity-0 group-hover:opacity-100 transition-opacity" />
+                    Contact Us
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4 — Contact */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-semibold tracking-widest uppercase text-solar-gold flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-solar-gold inline-block" />
+                Contact
+              </h3>
+              <div className="space-y-3">
+                <a
+                  href="mailto:support@pvsolcast.com"
+                  data-ocid="footer.email.link"
+                  className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-solar-gold transition-colors group"
+                >
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 bg-primary/10 border border-primary/25">
+                    <Mail className="w-3.5 h-3.5 text-solar-gold" />
+                  </div>
+                  <span className="truncate">support@pvsolcast.com</span>
+                </a>
+                <a
+                  href="https://www.pvsolcast.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-ocid="footer.website.link"
+                  className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-solar-teal transition-colors group"
+                >
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 bg-accent/10 border border-accent/25">
+                    <ExternalLink className="w-3.5 h-3.5 text-solar-teal" />
+                  </div>
+                  <span>www.pvsolcast.com</span>
+                </a>
+              </div>
+              <div className="pt-2 space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-solar-green border border-solar-green/30 bg-solar-green/10">
+                  <Zap className="w-3 h-3" />
+                  India Solar Data Platform
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span>Made for India</span>
+                  <span>🇮🇳</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="text-center text-xs text-muted-foreground/60 mt-2">
-            © {new Date().getFullYear()}.{" "}
-            <a
-              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "pvsolcast")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-muted-foreground transition-colors"
-            >
-              Built with ❤️ using caffeine.ai
-            </a>
+        </div>
+
+        {/* Divider */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="border-t border-border/60" />
+        </div>
+
+        {/* Bottom bar */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground/70">
+            <span>
+              © {new Date().getFullYear()} PV SolCast. All rights reserved.
+            </span>
+            <span className="hidden md:flex items-center gap-1.5 text-muted-foreground/50">
+              <Zap className="w-3 h-3 text-solar-teal/60" />
+              Powered by real solar geometry calculations
+            </span>
           </div>
         </div>
       </footer>
@@ -370,12 +561,20 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: "oklch(0.16 0.018 250)",
-            border: "1px solid oklch(0.28 0.025 240)",
-            color: "oklch(0.96 0.01 220)",
+            background: "oklch(var(--card))",
+            border: "1px solid oklch(var(--border))",
+            color: "oklch(var(--foreground))",
           },
         }}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
   );
 }

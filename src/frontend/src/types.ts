@@ -121,7 +121,8 @@ export type TabName =
   | "config"
   | "analytics"
   | "solarplants"
-  | "locanalytics";
+  | "locanalytics"
+  | "support";
 
 export interface CityOption {
   name: string;

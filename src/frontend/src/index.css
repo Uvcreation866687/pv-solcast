@@ -167,10 +167,18 @@
     box-shadow: var(--glow-teal);
   }
   .gradient-solar {
-    background: linear-gradient(135deg, oklch(var(--solar-gold)) 0%, oklch(var(--solar-amber)) 100%);
+    background: linear-gradient(
+      135deg,
+      oklch(var(--solar-gold)) 0%,
+      oklch(var(--solar-amber)) 100%
+    );
   }
   .gradient-navy {
-    background: linear-gradient(180deg, oklch(var(--background)) 0%, oklch(var(--solar-navy-deep)) 100%);
+    background: linear-gradient(
+      180deg,
+      oklch(var(--background)) 0%,
+      oklch(var(--solar-navy-deep)) 100%
+    );
   }
   .card-solar {
     background: oklch(var(--card));

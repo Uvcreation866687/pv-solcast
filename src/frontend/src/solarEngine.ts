@@ -156,6 +156,63 @@ export function annualOptimalTilt(latDeg: number): number {
   return Math.abs(latDeg) * 0.87;
 }
 
+// Location-based soiling factor for India (returns value 0.80-0.95)
+// Based on climate zone: desert = high dust = low soiling factor; heavy rain = clean panels = high soiling factor
+export function locationSoilingFactor(lat: number, lon: number): number {
+  // Rajasthan desert (Jaisalmer, Bikaner, Barmer, Jodhpur)
+  if (lat >= 24 && lat <= 30 && lon >= 69 && lon <= 76) return 0.82;
+  // Gujarat arid/semi-arid
+  if (lat >= 20 && lat < 24.5 && lon >= 68 && lon <= 74) return 0.84;
+  // Ladakh / extreme high altitude (dry but harsh UV)
+  if (lat >= 32) return 0.88;
+  // North India plains (IGP dusty belt: Punjab, Haryana, UP, Delhi)
+  if (lat >= 25 && lon >= 75 && lon <= 88) return 0.86;
+  // NE India (Assam, Meghalaya – very high rainfall, panels stay clean)
+  if (lon >= 88 && lat >= 22 && lat <= 28) return 0.93;
+  // Eastern India (West Bengal, Odisha – humid monsoon)
+  if (lon >= 84 && lat <= 25) return 0.91;
+  // Kerala / extreme south-west (heaviest monsoon rainfall)
+  if (lat <= 12 && lon < 76) return 0.94;
+  // South India coastal (rain-washed, Tamil Nadu, AP coast)
+  if (lat <= 15 && lon >= 76) return 0.92;
+  // Southern Deccan (Karnataka, Andhra, Telangana)
+  if (lat <= 18 && lon >= 74 && lon <= 84) return 0.9;
+  // Central India (MP, Chhattisgarh, Vidarbha)
+  if (lat >= 18 && lat <= 25 && lon >= 74 && lon <= 82) return 0.87;
+  // Default moderate
+  return 0.89;
+}
+
+// Location-based shading loss for India (returns fraction 0.01-0.06)
+// Based on terrain and density: flat desert = minimal shading; mountains/urban = higher
+export function locationShadingLoss(lat: number, lon: number): number {
+  // Ladakh / Himachal / Uttarakhand mountains (valley shading, hillsides)
+  if (lat >= 30 && lon <= 82) return 0.055;
+  // NE hilly terrain
+  if (lon >= 90 && lat >= 22) return 0.05;
+  // Open flat desert (Rajasthan, Gujarat Rann) — minimal shading
+  if (lat >= 24 && lat <= 30 && lon >= 69 && lon <= 76) return 0.01;
+  // Dense metro areas (check within ~0.5 degree radius of major cities)
+  const metros = [
+    { lat: 19.076, lon: 72.877 }, // Mumbai
+    { lat: 28.61, lon: 77.21 }, // Delhi
+    { lat: 22.57, lon: 88.36 }, // Kolkata
+    { lat: 13.08, lon: 80.27 }, // Chennai
+    { lat: 17.38, lon: 78.49 }, // Hyderabad
+    { lat: 12.97, lon: 77.59 }, // Bengaluru
+    { lat: 18.52, lon: 73.86 }, // Pune
+    { lat: 23.02, lon: 72.57 }, // Ahmedabad
+  ];
+  for (const m of metros) {
+    if (Math.sqrt((lat - m.lat) ** 2 + (lon - m.lon) ** 2) < 0.6) return 0.045;
+  }
+  // Coastal vegetation belt (western ghats coast, eastern coast)
+  if (lon >= 74 && lon <= 77 && lat <= 20) return 0.035;
+  if (lon >= 79 && lon <= 82 && lat <= 15) return 0.035;
+  // Default open semi-rural
+  return 0.03;
+}
+
 // System power output in kW accounting for all losses
 export function systemPowerOutput(
   config: SystemConfig,
@@ -681,10 +738,14 @@ export function calculateSystemLosses(
   const tempLoss =
     config.calibration.temperatureCoefficient * Math.max(0, currentTempC - 25);
   const soilingLoss = 1 - config.calibration.soilingFactor;
+  const shadingLoss = locationShadingLoss(
+    config.location.latitude,
+    config.location.longitude,
+  );
 
   return {
     temperatureLoss: Math.abs(tempLoss),
-    shadingLoss: 0.03,
+    shadingLoss,
     wiringLoss: 0.02,
     inverterEfficiency: 0.97,
     soilingLoss,
@@ -692,7 +753,7 @@ export function calculateSystemLosses(
     iamLoss: 0.015,
     totalEfficiency:
       (1 - Math.abs(tempLoss)) *
-      0.97 *
+      (1 - shadingLoss) *
       0.98 *
       0.97 *
       config.calibration.soilingFactor *

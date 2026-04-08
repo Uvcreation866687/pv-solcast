@@ -39,12 +39,15 @@ interface AnalyticsProps {
 }
 
 const CHART_STYLE = {
-  background: "oklch(0.16 0.018 250)",
-  border: "1px solid oklch(0.28 0.025 240)",
+  background: "#1a2035",
+  border: "1px solid #3a4a6a",
   borderRadius: "8px",
-  color: "oklch(0.96 0.01 220)",
+  color: "#f0f4ff",
   fontSize: "12px",
 };
+
+const TOOLTIP_LABEL_STYLE = { color: "#a0b4d0", fontWeight: 600 };
+const TOOLTIP_ITEM_STYLE = { color: "#f0f4ff" };
 
 const LOSS_COLORS = [
   "#d4aa30",
@@ -440,6 +443,8 @@ export function Analytics({
                   />
                   <Tooltip
                     contentStyle={CHART_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    itemStyle={TOOLTIP_ITEM_STYLE}
                     formatter={(v: number) => [`₹${v.toFixed(0)}`, ""]}
                   />
                   <Legend
@@ -504,7 +509,11 @@ export function Analytics({
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip contentStyle={CHART_STYLE} />
+              <Tooltip
+                contentStyle={CHART_STYLE}
+                labelStyle={TOOLTIP_LABEL_STYLE}
+                itemStyle={TOOLTIP_ITEM_STYLE}
+              />
               <Legend
                 wrapperStyle={{
                   color: "oklch(0.6 0.015 230)",
@@ -589,6 +598,8 @@ export function Analytics({
               />
               <Tooltip
                 contentStyle={CHART_STYLE}
+                labelStyle={TOOLTIP_LABEL_STYLE}
+                itemStyle={TOOLTIP_ITEM_STYLE}
                 formatter={(v: number, name: string) =>
                   name === "Clearness (%)"
                     ? [`${v.toFixed(1)}%`, name]
@@ -657,6 +668,8 @@ export function Analytics({
               />
               <Tooltip
                 contentStyle={CHART_STYLE}
+                labelStyle={TOOLTIP_LABEL_STYLE}
+                itemStyle={TOOLTIP_ITEM_STYLE}
                 formatter={(v: number) => [`${v}%`, "PR"]}
               />
               <Line
@@ -703,6 +716,8 @@ export function Analytics({
               />
               <Tooltip
                 contentStyle={CHART_STYLE}
+                labelStyle={TOOLTIP_LABEL_STYLE}
+                itemStyle={TOOLTIP_ITEM_STYLE}
                 formatter={(v: number) => [`${v}°`, ""]}
               />
               <Legend
@@ -783,6 +798,8 @@ export function Analytics({
               />
               <Tooltip
                 contentStyle={CHART_STYLE}
+                labelStyle={TOOLTIP_LABEL_STYLE}
+                itemStyle={TOOLTIP_ITEM_STYLE}
                 formatter={(v: number, name: string) =>
                   name === "80% Threshold"
                     ? [`${v.toFixed(0)} kWh`, name]
@@ -858,6 +875,8 @@ export function Analytics({
               />
               <Tooltip
                 contentStyle={CHART_STYLE}
+                labelStyle={TOOLTIP_LABEL_STYLE}
+                itemStyle={TOOLTIP_ITEM_STYLE}
                 formatter={(v: number) => [
                   `${v.toFixed(1)} hrs`,
                   "Peak Sun Hrs",
@@ -923,6 +942,8 @@ export function Analytics({
                   </Pie>
                   <Tooltip
                     contentStyle={CHART_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    itemStyle={TOOLTIP_ITEM_STYLE}
                     formatter={(value: number, name: string) => [
                       `${Number(value).toFixed(2)}%`,
                       name,

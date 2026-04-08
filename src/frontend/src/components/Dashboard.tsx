@@ -396,11 +396,14 @@ export function Dashboard({
                 />
                 <Tooltip
                   contentStyle={{
-                    background: "oklch(0.16 0.018 250)",
-                    border: "1px solid oklch(0.28 0.025 240)",
+                    background: "#1a2035",
+                    border: "1px solid #3a4a6a",
                     borderRadius: "8px",
-                    color: "oklch(0.96 0.01 220)",
+                    color: "#f0f4ff",
+                    fontSize: "12px",
                   }}
+                  labelStyle={{ color: "#a0b4d0", fontWeight: 600 }}
+                  itemStyle={{ color: "#f0f4ff" }}
                   formatter={(v: number) => [`${v.toFixed(2)} kW`, "Power"]}
                 />
                 <Area

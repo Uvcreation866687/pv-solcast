@@ -1500,7 +1500,7 @@ export function IndiaSolarPlants({
                           className={`text-xs h-7 px-3 ${
                             isSelected
                               ? "gradient-solar text-primary-foreground"
-                              : "border-solar-gold/60 text-solar-gold hover:bg-solar-gold/10"
+                              : "border-solar-gold/60 text-solar-gold hover:bg-solar-gold hover:text-white"
                           }`}
                           variant={isSelected ? "default" : "outline"}
                         >

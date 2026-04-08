@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  LocateFixed,
   MapPin,
   Plus,
   Save,
@@ -117,6 +118,84 @@ const CITIES: CityOption[] = [
     name: "Aurangabad, Maharashtra",
     latitude: 19.8762,
     longitude: 75.3433,
+    country: "IN",
+  },
+  {
+    name: "Amravati, Maharashtra",
+    latitude: 20.9374,
+    longitude: 77.7796,
+    country: "IN",
+  },
+  {
+    name: "Solapur, Maharashtra",
+    latitude: 17.6805,
+    longitude: 75.9064,
+    country: "IN",
+  },
+  {
+    name: "Kolhapur, Maharashtra",
+    latitude: 16.705,
+    longitude: 74.2433,
+    country: "IN",
+  },
+  {
+    name: "Akola, Maharashtra",
+    latitude: 20.7002,
+    longitude: 77.0082,
+    country: "IN",
+  },
+  {
+    name: "Latur, Maharashtra",
+    latitude: 18.4088,
+    longitude: 76.5604,
+    country: "IN",
+  },
+  {
+    name: "Nanded, Maharashtra",
+    latitude: 19.1383,
+    longitude: 77.321,
+    country: "IN",
+  },
+  {
+    name: "Jalgaon, Maharashtra",
+    latitude: 21.0077,
+    longitude: 75.5626,
+    country: "IN",
+  },
+  {
+    name: "Bhiwandi, Maharashtra",
+    latitude: 19.3002,
+    longitude: 73.0631,
+    country: "IN",
+  },
+  {
+    name: "Malegaon, Maharashtra",
+    latitude: 20.5579,
+    longitude: 74.5089,
+    country: "IN",
+  },
+  {
+    name: "Dhule, Maharashtra",
+    latitude: 20.9042,
+    longitude: 74.7749,
+    country: "IN",
+  },
+  {
+    name: "Ahmadnagar, Maharashtra",
+    latitude: 19.0952,
+    longitude: 74.748,
+    country: "IN",
+  },
+  {
+    name: "Chandrapur, Maharashtra",
+    latitude: 19.9615,
+    longitude: 79.2961,
+    country: "IN",
+  },
+  {
+    name: "Ahmednagar, Maharashtra",
+    latitude: 19.0952,
+    longitude: 74.748,
     country: "IN",
   },
   {
@@ -337,8 +416,57 @@ export function SystemConfigTab({
   const [expandedArrays, setExpandedArrays] = useState<Set<number>>(
     new Set([0]),
   );
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
   // presetName reserved for future preset save feature
   const [_presetName, _setPresetName] = useState("");
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setGpsError("Geolocation is not supported by your browser.");
+      return;
+    }
+    setGpsLoading(true);
+    setGpsError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const latDir = lat >= 0 ? "N" : "S";
+        const lonDir = lon >= 0 ? "E" : "W";
+        const locationName = `My Location (${Math.abs(lat).toFixed(4)}°${latDir}, ${Math.abs(lon).toFixed(4)}°${lonDir})`;
+        setCitySearch(locationName);
+        update({
+          location: {
+            latitude: lat,
+            longitude: lon,
+            cityName: locationName,
+          },
+        });
+        setGpsLoading(false);
+        toast.success("Location updated from GPS");
+      },
+      (error) => {
+        setGpsLoading(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setGpsError(
+              "Location access denied. Please allow location permission in your browser.",
+            );
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setGpsError("Location information is unavailable.");
+            break;
+          case error.TIMEOUT:
+            setGpsError("Location request timed out.");
+            break;
+          default:
+            setGpsError("An unknown error occurred.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  };
 
   const filteredCities =
     citySearch.length > 1
@@ -510,6 +638,41 @@ export function SystemConfigTab({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Use My Location button */}
+          <div className="flex flex-col gap-2">
+            <Button
+              data-ocid="config.use_my_location.button"
+              type="button"
+              variant="outline"
+              onClick={handleUseMyLocation}
+              disabled={gpsLoading}
+              className="w-full border-solar-gold text-solar-gold hover:bg-solar-gold/10 gap-2 font-semibold"
+            >
+              {gpsLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <LocateFixed className="w-4 h-4" />
+              )}
+              {gpsLoading
+                ? "Detecting Location..."
+                : "Use My Current Location (GPS)"}
+            </Button>
+            {gpsError && (
+              <p
+                data-ocid="config.gps.error_state"
+                className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2"
+              >
+                {gpsError}
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex-1 h-px bg-border" />
+            <span>or search manually</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
           {/* City search */}
           <div className="relative">
             <Label className="text-sm text-muted-foreground mb-1.5 block">
